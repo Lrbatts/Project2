@@ -1,0 +1,15 @@
+---
+title: "Project2"
+author: "Landon Batts, Jose Singer-Freeman"
+date: "2023-07-02"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r import and wrangle data}
+raw_data<-read.csv("~/ST558/Project2/OnlineNewsPopularity.csv")
+```
+

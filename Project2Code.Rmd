@@ -8,14 +8,14 @@ params:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, message=FALSE)
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, cache = TRUE)
 ```
 
-```{r load packages, echo=FALSE}
+```{r load packages}
 library(tidyverse)
 library(caret)
 ```
-## Data Wrangling
+## 1.Introducton
 
 ```{r import and wrangle data}
 #Get data
@@ -24,36 +24,103 @@ raw_data<-read.csv("~/ST558/Project2/OnlineNewsPopularity.csv")
 # Remove variables we won't use
 newsData<-raw_data %>% select(-c(url,timedelta))
 
-
 #Filter data from a single channel (just as test) 
 
-#store business channel the global channel paramerter 
-bindingIsLocked("params", env = .GlobalEnv)
-unlockBinding("params", env = .GlobalEnv)
+
+#if currently blocked, unblock the channel parameter
+
+if (bindingIsLocked("params", env = .GlobalEnv)==TRUE) {
+      unlockBinding("params", env = .GlobalEnv)}
+
+#store business channel the global channel parameter 
 params$channel<-"data_channel_is_bus"
 
-# make the parameter as a name and then filter values where the variable is 1
+# convert the parameter into a name and then select the rows  where the channel is 1
+channelData<-newsData %>% filter(eval(as.name(params$channel))==1)
 
-busChannelData<-newsData %>% filter(eval(as.name(params$channel))==1)
 
 
 ```
 
+##  2.  Import Data
 
-#  Basic Summary Statistics
+##  3. Basic Summary Statistics
 
-#  Modeling
+##  4. Modeling
 
-## Linear Models
+Split the data into 70/30 testing/training sets 
+```{r split data}
+#use set.seed for reproducibility
+set.seed(101)
 
-###  Linear Regression Model 1
+trainIndex <-caret::createDataPartition(channelData$shares, p = 0.7, list = FALSE)
+
+training <-channelData[trainIndex,]
+testing <-channelData[-trainIndex,]
+
+```
+
+We will use 10-fold crossvalidation repeated 5 times
+```{r control}
+#We will use repeated 10-fold cv for all predictive techniques 
+
+controlObject<-trainControl(method = "repeatedcv", 
+                        number = 10, 
+                        repeats=5)
+```
 
 
-###  Linear Regression Model 2
 
 
-##  Random Forest Model
+
+### Linear Models
+
+####  Linear Regression Model 1
 
 
-##  Boosted Tree Model
+####  Linear Regression Model 2
 
+
+###  Random Forest Model
+
+
+###  Boosted Tree Model
+
+```{r boost tree}
+
+#remove predictors with near zero variance (including indicators for other channels)
+
+# check how much variance there is for all variables 
+#nzv <- nearZeroVar(channelData, saveMetrics= TRUE)
+
+#removed 8 variables with low variance
+
+# Get variables with zero or near-zero variance
+nzv <- nearZeroVar(channelData)
+filteredChannelData <- channelData[, -nzv]
+
+# formula using all variables other than those that have zero variance
+
+BTformula<-as.formula("shares~.")
+
+set.seed(102)
+
+
+tunegridBT<-expand.grid(n.trees=c(25, 50, 100, 150, 200), 
+                           interaction.depth=1:4, 
+                           shrinkage=0.1, 
+                           n.minobsinnode=10)
+
+BTfit <- train(
+  form = BTformula,
+  data = filteredChannelData,
+  trControl= controlObject,
+  method="gbm",
+  tuneGrid=tunegridBT,
+  preProcess =c("center","scale"),
+  na.action = na.omit,
+  verbose = FALSE)
+
+predictionBT <- predict(BTfit,newdata = testing)
+
+```

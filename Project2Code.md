@@ -1,23 +1,11 @@
----
-title: "Project2"
-author: "Landon Batts, Jose Singer-Freeman"
-date: "2023-07-02"
-output: github_document
-params: 
-      channel: ""
----
+Project2
+================
+Landon Batts, Jose Singer-Freeman
+2023-07-02
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, message=FALSE)
-```
-
-```{r load packages, echo=FALSE}
-library(tidyverse)
-library(caret)
-```
 ## Data Wrangling
 
-```{r import and wrangle data}
+``` r
 #Get data
 raw_data<-read.csv("~/ST558/Project2/OnlineNewsPopularity.csv")
 
@@ -29,31 +17,29 @@ newsData<-raw_data %>% select(-c(url,timedelta))
 
 #store business channel the global channel paramerter 
 bindingIsLocked("params", env = .GlobalEnv)
+```
+
+    ## [1] TRUE
+
+``` r
 unlockBinding("params", env = .GlobalEnv)
 params$channel<-"data_channel_is_bus"
 
 # make the parameter as a name and then filter values where the variable is 1
 
 busChannelData<-newsData %>% filter(eval(as.name(params$channel))==1)
-
-
 ```
 
+# Basic Summary Statistics
 
-#  Basic Summary Statistics
-
-#  Modeling
+# Modeling
 
 ## Linear Models
 
-###  Linear Regression Model 1
+### Linear Regression Model 1
 
+### Linear Regression Model 2
 
-###  Linear Regression Model 2
+## Random Forest Model
 
-
-##  Random Forest Model
-
-
-##  Boosted Tree Model
-
+## Boosted Tree Model

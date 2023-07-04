@@ -10,3 +10,9 @@ forcats
 lubridate
 lattice
 caret
+leaps
+foreach
+iterators
+doParallel
+corrplot
+knitr

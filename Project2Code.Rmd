@@ -9,6 +9,11 @@ params:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message=FALSE, cache = TRUE)
+#if currently blocked, unblock the channel parameter
+
+if (bindingIsLocked("params", env = .GlobalEnv)==TRUE) {
+      unlockBinding("params", env = .GlobalEnv)}
+
 ```
 
 ```{r load packages, include=FALSE}
@@ -17,7 +22,8 @@ library(caret)
 library(leaps)
 library(doParallel)
 library(dplyr)
-library(corrr)
+library(corrplot)
+library(knitr)
 ```
 ## 1.Introducton
 
@@ -41,12 +47,6 @@ newsData<-raw_data %>% select(-c(url,timedelta))
 
 #Filter data from a single channel (just as test) using the parameter params$channel
 
-
-#if currently blocked, unblock the channel parameter
-
-if (bindingIsLocked("params", env = .GlobalEnv)==TRUE) {
-      unlockBinding("params", env = .GlobalEnv)}
-
 #store business channel the global channel parameter 
 params$channel<-"data_channel_is_bus"
 
@@ -60,9 +60,28 @@ channelData<-newsData %>% filter(eval(as.name(params$channel))==1)
 
 ##  3. Basic Summary Statistics
 
-### Summary Statistics
-```{r summary statistics}
+The table below shows pairs of variables whose correlation, in absolute terms, is above 0.5.  For those that exceed 0.9, we will drop a member of each pair of variables from our models, namely,  kw_avg_min, n_non_stop_unique_tokens, and rate_negative_words.
 
+### Summary Statistics
+
+```{r correlation}
+#Correlation
+tempordata<-channelData[-c(12:18)] #remove channel variables
+corMat<-cor(tempordata, use="pairwise.complete.obs")
+# Find highest correlations.  First drop higher triangle to avoid duplicates and remove the diagonal. 
+corMat[lower.tri(corMat,diag=TRUE)] <- NA  # drop upper triangle
+corMat[corMat == 1] <- NA  #drop perfect correlations
+
+corMat <- as.data.frame(as.table(corMat)) #form a  table with 3 columns: 2-variables and their correlation
+corMat <- na.omit(corMat) #remove missing values
+corMat<-subset(corMat, abs(Freq) > 0.5) #select correlation values above 0.5  
+corMat <- corMat[order(-abs(corMat$Freq)),] #sort by highest to lowest correlation
+knitr::kable(corMat, col.names=as.vector(c("Variable 1", "Variable 2", "Correlation")),  digits = 2)
+
+#turn corr back into matrix in order to plot with corrplot
+  corMat2 <- reshape2::acast(corMat, Var1~Var2, value.var="Freq")
+  #plot  correlations above 0.5 (and lower than -0.5)
+  corrplot(corMat2, is.corr=FALSE, tl.col="black", na.label=" ")
 
 ```
 

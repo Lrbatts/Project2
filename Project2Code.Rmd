@@ -11,11 +11,26 @@ params:
 knitr::opts_chunk$set(echo = TRUE, message=FALSE, cache = TRUE)
 ```
 
-```{r load packages}
+```{r load packages, include=FALSE}
 library(tidyverse)
 library(caret)
+library(leaps)
+library(doParallel)
+library(dplyr)
+library(corrr)
 ```
 ## 1.Introducton
+
+
+In this project we work with the [online news popularity data set](https://archive.ics.uci.edu/dataset/332/online+news+popularity)  published by UC Irvine  The data set summarizes a heterogeneous set of features about articles published by Mashable in a period of two years.  
+
+Our goal is to predict the number of "shares" (popularity) of articles in social networks.  This is done separately for 6 different types or "channels" of articles, namely, lifestyle, entertainment, business, social media, tech and world news.     
+
+Our predictive models for shares consist of two linear regression models, a random forest model and a boosted tree model for each of the 6 channels. 
+
+
+##  2.  Import Data
+
 
 ```{r import and wrangle data}
 #Get data
@@ -24,7 +39,7 @@ raw_data<-read.csv("~/ST558/Project2/OnlineNewsPopularity.csv")
 # Remove variables we won't use
 newsData<-raw_data %>% select(-c(url,timedelta))
 
-#Filter data from a single channel (just as test) 
+#Filter data from a single channel (just as test) using the parameter params$channel
 
 
 #if currently blocked, unblock the channel parameter
@@ -42,13 +57,21 @@ channelData<-newsData %>% filter(eval(as.name(params$channel))==1)
 
 ```
 
-##  2.  Import Data
 
 ##  3. Basic Summary Statistics
 
+### Summary Statistics
+```{r summary statistics}
+
+
+```
+
+### Plots
+
+
 ##  4. Modeling
 
-Split the data into 70/30 testing/training sets 
+We first split the data for each channel into 70% for testing and 30% for training. 
 ```{r split data}
 #use set.seed for reproducibility
 set.seed(101)
@@ -60,7 +83,8 @@ testing <-channelData[-trainIndex,]
 
 ```
 
-We will use 10-fold crossvalidation repeated 5 times
+For all models we will use 10-fold cross-validation repeated 5 times for each type of model.  Using the caret package, we set up the "control" that provides for this cross-validation. 
+
 ```{r control}
 #We will use repeated 10-fold cv for all predictive techniques 
 
@@ -69,7 +93,19 @@ controlObject<-trainControl(method = "repeatedcv",
                         repeats=5)
 ```
 
+```{r remove zero variance}
+#remove predictors with near zero variance (including indicators for other channels)
 
+# check how much variance there is for all variables 
+#nzv <- nearZeroVar(channelData, saveMetrics= TRUE)
+
+#removed 8 variables with low variance
+
+# Get variables with zero or near-zero variance and remove them from the dataframe
+nzv <- nearZeroVar(channelData)
+filteredChannelData <- channelData[, -nzv]
+
+```
 
 
 
@@ -80,6 +116,33 @@ controlObject<-trainControl(method = "repeatedcv",
 
 ####  Linear Regression Model 2
 
+Performed forward step-wise regression.  Excluded variable that was found to have zero variance.  Terrible results.
+
+```{r linear regression model 2}
+#Note: Need to remove one day of week and 
+
+set.seed(102)
+
+# clust <- parallel::makePSOCKcluster(5)
+# doParallel::registerDoParallel(clust)
+# 
+# lm2fit <- train(
+#   shares~.,
+#   data = filteredChannelData,
+#   trControl= controlObject,
+#   method= "lmStepAIC",
+#   direction = "backward",
+#   trace = FALSE,
+#   preProcess =c("center","scale"),
+#   na.action = na.omit,
+#   verbose = FALSE)
+# 
+# predictionLm2 <- predict(lm2fit,newdata = testing)
+# #Get RMSE value
+# lm2_RMSE<-postResample(predictionLm2, obs = testing$shares)["RMSE"][[1]]
+
+```
+
 
 ###  Random Forest Model
 
@@ -88,39 +151,38 @@ controlObject<-trainControl(method = "repeatedcv",
 
 ```{r boost tree}
 
-#remove predictors with near zero variance (including indicators for other channels)
-
-# check how much variance there is for all variables 
-#nzv <- nearZeroVar(channelData, saveMetrics= TRUE)
-
-#removed 8 variables with low variance
-
-# Get variables with zero or near-zero variance
-nzv <- nearZeroVar(channelData)
-filteredChannelData <- channelData[, -nzv]
-
 # formula using all variables other than those that have zero variance
 
-BTformula<-as.formula("shares~.")
+# BTformula<-as.formula("shares~.")
+# 
+# set.seed(102)
+# 
+# tunegridBT<-expand.grid(n.trees=c(25, 50, 100, 150, 200), 
+#                            interaction.depth=1:4, 
+#                            shrinkage=0.1, 
+#                            n.minobsinnode=10)
+# 
+# BTfit <- train(
+#   form = BTformula,
+#   data = filteredChannelData,
+#   trControl= controlObject,
+#   method="gbm",
+#   tuneGrid=tunegridBT,
+#   preProcess =c("center","scale"),
+#   na.action = na.omit,
+#   verbose = FALSE)
+# 
+# predictionBT <- predict(BTfit,newdata = testing)
+# postResample(predictionBT, obs = filteredChannelData$shares)
 
-set.seed(102)
-
-
-tunegridBT<-expand.grid(n.trees=c(25, 50, 100, 150, 200), 
-                           interaction.depth=1:4, 
-                           shrinkage=0.1, 
-                           n.minobsinnode=10)
-
-BTfit <- train(
-  form = BTformula,
-  data = filteredChannelData,
-  trControl= controlObject,
-  method="gbm",
-  tuneGrid=tunegridBT,
-  preProcess =c("center","scale"),
-  na.action = na.omit,
-  verbose = FALSE)
-
-predictionBT <- predict(BTfit,newdata = testing)
 
 ```
+
+## Model Comparisons
+
+We calculate the RMSE for each model using the  testing data.  The  winning model will be the one  with lowest RMSE.
+
+```{r model comparison}
+
+```
+

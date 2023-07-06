@@ -68,14 +68,16 @@ The table below shows pairs of variables whose correlation, in absolute terms, i
 
 ```{r correlation}
 #Correlation
-tempordata<-channelData[-c(12:18)] #remove channel variables
+tempordata<-channelData[-c(12:17)] #remove channel variables
 corMat<-cor(tempordata, use="pairwise.complete.obs")
+
 # Find highest correlations.  First drop higher triangle to avoid duplicates and remove the diagonal. 
 corMat[lower.tri(corMat,diag=TRUE)] <- NA  # drop upper triangle
 corMat[corMat == 1] <- NA  #drop perfect correlations
 
 corMat <- as.data.frame(as.table(corMat)) #form a  table with 3 columns: 2-variables and their correlation
 corMat <- na.omit(corMat) #remove missing values
+
 corMat<-subset(corMat, abs(Freq) > 0.5) #select correlation values above 0.5  
 corMat <- corMat[order(-abs(corMat$Freq)),] #sort by highest to lowest correlation
 knitr::kable(corMat, col.names=as.vector(c("Variable 1", "Variable 2", "Correlation")),  digits = 2)
@@ -84,6 +86,29 @@ knitr::kable(corMat, col.names=as.vector(c("Variable 1", "Variable 2", "Correlat
   corMat2 <- reshape2::acast(corMat, Var1~Var2, value.var="Freq") #melt the data
   corrplot(corMat2, is.corr=FALSE, tl.col="black", na.label=" ") #plot  correlations absolute value above 0.5
 
+  #get correlation of shares with other variables
+  
+  share_cor <- sort(desc(cor(tempordata[ , colnames(tempordata) != "shares"],  
+                tempordata$shares)))
+  
+tempordata<-channelData[-c(12:17)] #remove channel variables  
+```
+
+
+```{r weekday summary}
+
+t<-channelData%>%select(shares,starts_with("weekday_is"))%>%
+    mutate(day_of_week=factor(case_when(as.logical(weekday_is_monday)~"Monday",
+                             as.logical(weekday_is_tuesday)~"Tuesday",
+                             as.logical(weekday_is_wednesday)~"Wednesday",
+                             as.logical(weekday_is_thursday)~"Thursday",
+                             as.logical(weekday_is_friday)~"Friday",
+                             as.logical(weekday_is_saturday)~"Saturday",
+                             as.logical(weekday_is_sunday)~"Sunday"),ordered=TRUE,levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")))%>%
+  select(-starts_with("weekday_is"))%>%
+  group_by(day_of_week)%>%
+    dplyr::summarize("Average Shares"=mean(shares, na.rm=TRUE), "Number of Articles"=n())
+t
 ```
 
 ### Plots

@@ -118,17 +118,30 @@ dayData<-channelData%>%select(shares,starts_with("weekday_is"))%>%
                              as.logical(weekday_is_sunday)~"Sunday"),ordered=TRUE,levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")))%>%
   select(-starts_with("weekday_is"))%>%
   group_by(day_of_week)%>%
-    dplyr::summarize(avg_Shares=mean(shares, na.rm=TRUE), n_articles=n())
+    dplyr::summarize(avg_Shares=mean(shares, na.rm=TRUE))
 
-ggplot(dayData, aes(x = day_of_week, y = avg_Shares)) + geom_bar(stat="identity",color = "lightgreen", aes(fill = day_of_week) )+
-  scale_fill_grey()+ guides(fill="none")
+
 
 #variables with highest correlation to shares
 knitr::kable(slice(share_cor,1:10), digits=3, caption="10 variable most highly correlated with shares" , col.names=c("variable", "correlation with shares"))
 
+
+
+
 ```
 
 ### Plots
+
+```{r}
+# Average Number of Shares by Day of Week 
+g1<-ggplot(dayData, aes(x = day_of_week)) 
+
+g1+geom_bar(stat="identity",color = "lightgreen", aes(y = avg_Shares, fill = day_of_week) )+  scale_fill_grey()+ guides(fill="none")+labs(title="Average Shares by Day of Week", x="Day of Week", y="Avg. Shares")
+
+
+
+
+```
 
 
 ##  4. Modeling
@@ -203,6 +216,27 @@ set.seed(102)
 # #Get RMSE value
 # lm2_RMSE<-postResample(predictionLm2, obs = testing$shares)["RMSE"][[1]]
 
+
+#Build model with 20 highest (pairwise) correlated  variables to shares
+
+#save the names of the 20 predictors with highest correlation as a row vector in order to  use later for a linear model
+variables<- unname(unlist(slice(share_cor,1:15)[1]))
+RHSformu<-paste(variables, collapse="+")
+formu<-as.formula(paste("shares~",RHSformu))
+
+start_time <- Sys.time()
+
+lmfit2<-train(formu,
+           data = channelData,
+           trControl= controlObject,
+           #preProcess =c("center","scale"),
+           )
+
+end_time<-Sys.time()
+
+end_time-start
+
+summary(lmfit2)
 ```
 
 
@@ -246,5 +280,10 @@ We calculate the RMSE for each model using the  testing data.  The  winning mode
 
 ```{r model comparison}
 
+resamps <- caret::resamples(list(lmFit1,
+                          lmFit2,
+                           rfFit,
+                          btFit))
+summary(resamps)
 ```
 

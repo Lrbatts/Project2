@@ -131,16 +131,30 @@ knitr::kable(slice(share_cor,1:10), digits=3, caption="10 variable most highly c
 ```
 
 ### Plots
+```{r plots and summaries}
+#We can inspect the trend of the amount of shares as a function of the number of word in the content itself. If the points show an upward trend,then longer articles are shared more often. On the other hand, if there is a negative trend, then shorter articles are shared more.
+g <- ggplot(channelData, aes(x=n_tokens_content,y=shares))
+g + geom_point() + geom_smooth() +
+  labs(title="Word Count vs Shares",x="Number of Words in Content", y="Amount of Shares")
+```
 
 ```{r}
-# Average Number of Shares by Day of Week 
-g1<-ggplot(dayData, aes(x = day_of_week)) 
-
-g1+geom_bar(stat="identity",color = "lightgreen", aes(y = avg_Shares, fill = day_of_week) )+  scale_fill_grey()+ guides(fill="none")+labs(title="Average Shares by Day of Week", x="Day of Week", y="Avg. Shares")
 
 
+#In order to get an idea of the number of shares we are dealing with, a 5 number summary can be created to get an idea of the distribution, along with standard deviation to get an idea of the spread
+summarise(channelData,min=min(shares),
+          Q1=quantile(shares,0.25),
+          med=quantile(shares,0.5),
+          mean=mean(shares),
+          sd=sd(shares),
+          Q3=quantile(shares,.75),
+          max=max(shares)
+          )
 
-
+#To visualize this, a box plot can be created to visualize the spread and the 5 number summary 
+g2 <- ggplot(channelData,aes(x=shares))
+g2 + geom_boxplot() + xlim(0,5000) + 
+  labs(title="Shares Boxplot",x="Amount of Shares")
 ```
 
 
@@ -185,9 +199,21 @@ filteredChannelData <- channelData[, -nzv]
 
 
 ### Linear Models
-
+Linear Models is a type of statistical analysis in which a formula is created and used to predict the relationship between variables. It assumes a straight, linear relationship between variables and attempts to find a line of best fit in order to relate them. Here, we will attempt to perform linear regression in which we try to predict shares using the all other variables as independent.
 ####  Linear Regression Model 1
-
+Performed a simple linear regression with all variables except those with zero variance. Also, preprocessed the data by centering and scaling.
+``` {r linear regression model 1}
+set.seed(102)
+lm1Fit <- train(shares~., data=filteredChannelData,
+                method="lm",
+                preProcess=c("center","scale"),
+                trControl=controlObject)
+lm1Fit
+predictionlm1 <- predict(lm1Fit,newdata = testing)
+# #Get RMSE value
+lm1_RMSE<-postResample(predictionlm1, obs = testing$shares)["RMSE"][[1]]
+lm1_RMSE
+```
 
 ####  Linear Regression Model 2
 
@@ -241,7 +267,18 @@ summary(lmfit2)
 
 
 ###  Random Forest Model
-
+The random forest model is an extension of the idea of bootstrap aggregation in which multiple trees are created from bootstrap samples and results are averaged. The difference is that only a random subset of the predictors for each sample/fit.
+```{r rf model}
+set.seed(102)
+#randomforestFit <- train(shares~.,data=filteredChannelData,
+               #method="rf",
+               #trControl=controlObject,
+               #tuneGrid=data.frame(mtry=1:10))
+#rfFit$results
+#rfFit$bestTune
+#predictionrf <- predict(rfFit,newdata = testing)
+#postResample(predictionrf, obs = filteredChannelData$shares)
+```
 
 ###  Boosted Tree Model
 

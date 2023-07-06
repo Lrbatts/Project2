@@ -35,6 +35,8 @@ params$channel<-"data_channel_is_bus"
 
 # convert the parameter into a name and then select the rows  where the channel is 1
 channelData<-newsData %>% filter(eval(as.name(params$channel))==1)
+#shares imported as integer.  Convert to double for purposes of analysis.. 
+chanellData<-channelData%>%mutate(shares=as.numeric(shares))
 ```
 
 ## 3. Basic Summary Statistics
@@ -48,61 +50,122 @@ n_non_stop_unique_tokens, and rate_negative_words.
 
 ``` r
 #Correlation
-tempordata<-channelData[-c(12:18)] #remove channel variables
+
+tempordata<-channelData[-c(12:17)] #remove channel variables
+
 corMat<-cor(tempordata, use="pairwise.complete.obs")
-# Find highest correlations.  First drop higher triangle to avoid duplicates and remove the diagonal. 
+
+#get correlation of shares with other variables
+  
+share_cor <- data.frame("r"=corMat["shares",])
+share_cor<-share_cor%>%
+  rownames_to_column("variable")%>%
+  filter(!variable=="shares")%>%
+  arrange(desc(r))
+
+# Find highest correlations (above 0.5).  First drop higher triangle to avoid duplicates and remove the diagonal. 
 corMat[lower.tri(corMat,diag=TRUE)] <- NA  # drop upper triangle
 corMat[corMat == 1] <- NA  #drop perfect correlations
 
 corMat <- as.data.frame(as.table(corMat)) #form a  table with 3 columns: 2-variables and their correlation
 corMat <- na.omit(corMat) #remove missing values
+
 corMat<-subset(corMat, abs(Freq) > 0.5) #select correlation values above 0.5  
 corMat <- corMat[order(-abs(corMat$Freq)),] #sort by highest to lowest correlation
-knitr::kable(corMat, col.names=as.vector(c("Variable 1", "Variable 2", "Correlation")),  digits = 2)
+
+
+#turn corr back into matrix in order to plot with corrplot
+  corMat2 <- reshape2::acast(corMat, Var1~Var2, value.var="Freq") #melt the data
+
+  #Print table and chart for correlations among predictors
+
+  knitr::kable(corMat, col.names=as.vector(c("Variable 1", "Variable 2", "Correlation")),  digits = 2, caption="Correlations among Predictors")
 ```
 
 |      | Variable 1                 | Variable 2                   | Correlation |
 |:-----|:---------------------------|:-----------------------------|------------:|
-| 636  | kw_max_min                 | kw_avg_min                   |        0.98 |
-| 211  | n_unique_tokens            | n_non_stop_unique_tokens     |        0.91 |
-| 2120 | rate_positive_words        | rate_negative_words          |       -0.90 |
-| 954  | kw_max_avg                 | kw_avg_avg                   |        0.88 |
-| 1113 | self_reference_max_shares  | self_reference_avg_sharess   |        0.87 |
-| 1112 | self_reference_min_shares  | self_reference_avg_sharess   |        0.81 |
-| 2119 | global_rate_negative_words | rate_negative_words          |        0.79 |
-| 1537 | weekday_is_sunday          | is_weekend                   |        0.75 |
-| 2385 | avg_negative_polarity      | min_negative_polarity        |        0.75 |
-| 2065 | global_sentiment_polarity  | rate_positive_words          |        0.73 |
-| 472  | n_non_stop_words           | average_token_length         |        0.73 |
-| 2648 | title_subjectivity         | abs_title_sentiment_polarity |        0.72 |
-| 2117 | global_sentiment_polarity  | rate_negative_words          |       -0.72 |
-| 106  | n_tokens_content           | n_unique_tokens              |       -0.72 |
-| 2067 | global_rate_negative_words | rate_positive_words          |       -0.70 |
-| 795  | kw_max_max                 | kw_avg_max                   |        0.67 |
-| 1799 | LDA_00                     | LDA_04                       |       -0.64 |
-| 1536 | weekday_is_saturday        | is_weekend                   |        0.63 |
-| 2596 | title_subjectivity         | abs_title_subjectivity       |       -0.59 |
-| 1961 | global_sentiment_polarity  | global_rate_positive_words   |        0.59 |
-| 262  | n_tokens_content           | num_hrefs                    |        0.58 |
-| 2066 | global_rate_positive_words | rate_positive_words          |        0.57 |
-| 2278 | avg_positive_polarity      | max_positive_polarity        |        0.57 |
-| 210  | n_tokens_content           | n_non_stop_unique_tokens     |       -0.56 |
-| 2437 | avg_negative_polarity      | max_negative_polarity        |        0.54 |
-| 896  | kw_max_min                 | kw_max_avg                   |        0.53 |
-| 2118 | global_rate_positive_words | rate_negative_words          |       -0.52 |
-| 897  | kw_avg_min                 | kw_max_avg                   |        0.51 |
-| 2649 | title_sentiment_polarity   | abs_title_sentiment_polarity |        0.51 |
-| 2013 | global_sentiment_polarity  | global_rate_negative_words   |       -0.50 |
-| 2650 | abs_title_subjectivity     | abs_title_sentiment_polarity |       -0.50 |
+| 702  | kw_max_min                 | kw_avg_min                   |        0.98 |
+| 215  | n_unique_tokens            | n_non_stop_unique_tokens     |        0.91 |
+| 2214 | rate_positive_words        | rate_negative_words          |       -0.90 |
+| 1026 | kw_max_avg                 | kw_avg_avg                   |        0.88 |
+| 1188 | self_reference_max_shares  | self_reference_avg_sharess   |        0.87 |
+| 807  | kw_min_min                 | kw_max_max                   |       -0.86 |
+| 1187 | self_reference_min_shares  | self_reference_avg_sharess   |        0.81 |
+| 2213 | global_rate_negative_words | rate_negative_words          |        0.79 |
+| 1620 | weekday_is_sunday          | is_weekend                   |        0.75 |
+| 2484 | avg_negative_polarity      | min_negative_polarity        |        0.75 |
+| 2158 | global_sentiment_polarity  | rate_positive_words          |        0.73 |
+| 481  | n_non_stop_words           | average_token_length         |        0.73 |
+| 2752 | title_subjectivity         | abs_title_sentiment_polarity |        0.72 |
+| 2211 | global_sentiment_polarity  | rate_negative_words          |       -0.72 |
+| 108  | n_tokens_content           | n_unique_tokens              |       -0.72 |
+| 2160 | global_rate_negative_words | rate_positive_words          |       -0.70 |
+| 864  | kw_max_max                 | kw_avg_max                   |        0.67 |
+| 860  | kw_min_min                 | kw_avg_max                   |       -0.65 |
+| 1887 | LDA_00                     | LDA_04                       |       -0.64 |
+| 1619 | weekday_is_saturday        | is_weekend                   |        0.63 |
+| 2699 | title_subjectivity         | abs_title_subjectivity       |       -0.59 |
+| 2052 | global_sentiment_polarity  | global_rate_positive_words   |        0.59 |
+| 267  | n_tokens_content           | num_hrefs                    |        0.58 |
+| 2159 | global_rate_positive_words | rate_positive_words          |        0.57 |
+| 2375 | avg_positive_polarity      | max_positive_polarity        |        0.57 |
+| 214  | n_tokens_content           | n_non_stop_unique_tokens     |       -0.56 |
+| 2537 | avg_negative_polarity      | max_negative_polarity        |        0.54 |
+| 967  | kw_max_min                 | kw_max_avg                   |        0.53 |
+| 2212 | global_rate_positive_words | rate_negative_words          |       -0.52 |
+| 968  | kw_avg_min                 | kw_max_avg                   |        0.51 |
+| 2753 | title_sentiment_polarity   | abs_title_sentiment_polarity |        0.51 |
+| 2105 | global_sentiment_polarity  | global_rate_negative_words   |       -0.50 |
+| 2754 | abs_title_subjectivity     | abs_title_sentiment_polarity |       -0.50 |
+
+Correlations among Predictors
 
 ``` r
-#turn corr back into matrix in order to plot with corrplot
-  corMat2 <- reshape2::acast(corMat, Var1~Var2, value.var="Freq")
-  #plot  correlations above 0.5 (and lower than -0.5)
-  corrplot(corMat2, is.corr=FALSE, tl.col="black", na.label=" ")
+    corrplot(corMat2, is.corr=FALSE, tl.col="black", na.label=" ") #plot  correlations absolute value above 0.5
 ```
 
 ![](Project2Code_files/figure-gfm/correlation-1.png)<!-- -->
+
+``` r
+#weekday-shares relationshinship
+
+dayData<-channelData%>%select(shares,starts_with("weekday_is"))%>%
+    mutate(day_of_week=factor(case_when(as.logical(weekday_is_monday)~"Monday",
+                             as.logical(weekday_is_tuesday)~"Tuesday",
+                             as.logical(weekday_is_wednesday)~"Wednesday",
+                             as.logical(weekday_is_thursday)~"Thursday",
+                             as.logical(weekday_is_friday)~"Friday",
+                             as.logical(weekday_is_saturday)~"Saturday",
+                             as.logical(weekday_is_sunday)~"Sunday"),ordered=TRUE,levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")))%>%
+  select(-starts_with("weekday_is"))%>%
+  group_by(day_of_week)%>%
+    dplyr::summarize(avg_Shares=mean(shares, na.rm=TRUE), n_articles=n())
+
+ggplot(dayData, aes(x = day_of_week, y = avg_Shares)) + geom_bar(stat="identity",color = "lightgreen", aes(fill = day_of_week) )+
+  scale_fill_grey()+ guides(fill="none")
+```
+
+![](Project2Code_files/figure-gfm/weekday%20summary-1.png)<!-- -->
+
+``` r
+#variables with highest correlation to shares
+knitr::kable(slice(share_cor,1:10), digits=3, caption="10 variable most highly correlated with shares" , col.names=c("variable", "correlation with shares"))
+```
+
+| variable                   | correlation with shares |
+|:---------------------------|------------------------:|
+| self_reference_min_shares  |                   0.111 |
+| self_reference_avg_sharess |                   0.105 |
+| kw_avg_avg                 |                   0.087 |
+| self_reference_max_shares  |                   0.076 |
+| LDA_03                     |                   0.064 |
+| kw_max_avg                 |                   0.055 |
+| num_videos                 |                   0.050 |
+| global_subjectivity        |                   0.048 |
+| num_hrefs                  |                   0.041 |
+| kw_avg_min                 |                   0.038 |
+
+10 variable most highly correlated with shares
 
 ### Plots
 

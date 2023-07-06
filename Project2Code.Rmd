@@ -24,6 +24,8 @@ library(doParallel)
 library(dplyr)
 library(corrplot)
 library(knitr)
+library(DescTools)
+library(reshape2)
 ```
 ## 1.Introducton
 
@@ -79,9 +81,8 @@ corMat <- corMat[order(-abs(corMat$Freq)),] #sort by highest to lowest correlati
 knitr::kable(corMat, col.names=as.vector(c("Variable 1", "Variable 2", "Correlation")),  digits = 2)
 
 #turn corr back into matrix in order to plot with corrplot
-  corMat2 <- reshape2::acast(corMat, Var1~Var2, value.var="Freq")
-  #plot  correlations above 0.5 (and lower than -0.5)
-  corrplot(corMat2, is.corr=FALSE, tl.col="black", na.label=" ")
+  corMat2 <- reshape2::acast(corMat, Var1~Var2, value.var="Freq") #melt the data
+  corrplot(corMat2, is.corr=FALSE, tl.col="black", na.label=" ") #plot  correlations absolute value above 0.5
 
 ```
 

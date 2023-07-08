@@ -24,7 +24,7 @@ for (i in 1:length(channels)){
                     output_file = md_files[i],
                     params=list(channel=channels[i]), 
                     #envir=new.env(),
-                    output_options = list(html_preview = FALSE,
+                    output_options = list(html_preview = TRUE,
                                           toc=TRUE)
                      )   
 }

@@ -258,8 +258,6 @@ g3 + geom_point() + geom_smooth() +
 ```
 
 ```{r number summary and boxplot}
-
-
 #In order to get an idea of the number of shares we are dealing with, a 5 number summary can be created to get an idea of the distribution, along with standard deviation to get an idea of the spread
 summarise(channelData,min=min(shares),
           Q1=quantile(shares,0.25),
@@ -270,7 +268,7 @@ summarise(channelData,min=min(shares),
           max=max(shares)
           )
 
-#To visualize this, a box plot can be created to visualize the spread and the 5 number summary 
+#To visualize this, a box plot can be created to visualize the spread and the 5 number summary
 g2 <- ggplot(channelData,aes(x=shares))
 g2 + geom_boxplot() + xlim(0,5000) + 
   labs(title="Shares Boxplot",x="Amount of Shares")
@@ -288,6 +286,7 @@ We first split the data for each channel into 70% for testing and 30% for traini
 #use set.seed for reproducibility
 set.seed(101)
 
+#We need to split the data into a training (70% of the data) and test set (30% of the data)
 trainIndex <-caret::createDataPartition(channelData$shares, p = 0.7, list = FALSE)
 
 training <-channelData[trainIndex,]
@@ -330,6 +329,7 @@ Performed a simple linear regression with all variables except those with zero v
 
 ``` {r linear regression model 1}
 set.seed(102)
+#Include all variables with variance and fit a linear regression
  lm1Fit <- train(shares~., data=filteredChannelData,
                  method="lm",
                  preProcess=c("center","scale"),
@@ -399,12 +399,13 @@ The random forest model is an extension of the idea of bootstrap aggregation in 
 
  #cl <- makePSOCKcluster(5)  #start parallel computing with 5 cores
  #registerDoParallel(cl)
-# 
-# set.seed(102)
-# randomforestFit <- train(shares~.,data=filteredChannelData,
+#rfform <- formu
+#set.seed(102)
+#rfFit <- train(form=rfform,
+#                data=filteredChannelData,
 #                method="rf",
 #                trControl=controlObject,
-#                tuneGrid=data.frame(mtry=1:10))
+#                tuneGrid=data.frame(mtry=1:5))
 # rfFit$results
 # rfFit$bestTune
 # predictionrf <- predict(rfFit,newdata = testing)

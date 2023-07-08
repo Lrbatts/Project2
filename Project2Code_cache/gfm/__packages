@@ -8,6 +8,7 @@ dplyr
 stringr
 forcats
 lubridate
+rmarkdown
 lattice
 caret
 leaps
@@ -18,3 +19,4 @@ corrplot
 knitr
 DescTools
 reshape2
+MASS

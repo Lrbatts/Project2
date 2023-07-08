@@ -107,7 +107,7 @@ channelData<-newsData %>% filter(eval(as.name(params$channel))==1)
 #shares imported as integer.  Convert to double for purposes of analysis.. 
 chanellData<-channelData%>%mutate(shares=as.numeric(shares))
 
-rm(newsdata)
+rm(newsData)
 
 ```
 
@@ -245,14 +245,19 @@ g1+geom_bar(stat="identity",color = "lightgreen", aes(y = num_articles, fill = d
 ```
 
 ### Plots
-```{r plots and summaries}
+```{r scatter plots}
 #We can inspect the trend of the amount of shares as a function of the number of word in the content itself. If the points show an upward trend,then longer articles are shared more often. On the other hand, if there is a negative trend, then shorter articles are shared more.
 g <- ggplot(channelData, aes(x=n_tokens_content,y=shares))
 g + geom_point() + geom_smooth() +
   labs(title="Word Count vs Shares",x="Number of Words in Content", y="Amount of Shares")
+
+#We are also interested in how the subjectivity of an article's title affects the amount of shares of said article. If the points display an upward trend, then more subjective titles have more shares. Likewise, if there is a downward trend, then less subjective titles recieve more shares
+g3 <- ggplot(channelData, aes(x=title_subjectivity,y=shares)) 
+g3 + geom_point() + geom_smooth() +
+  labs(title="Titile Subjectivty vs Shares",x="Article Title Subjectivity", y="Amount of Shares")
 ```
 
-```{r}
+```{r number summary and boxplot}
 
 
 #In order to get an idea of the number of shares we are dealing with, a 5 number summary can be created to get an idea of the distribution, along with standard deviation to get an idea of the spread
@@ -270,7 +275,11 @@ g2 <- ggplot(channelData,aes(x=shares))
 g2 + geom_boxplot() + xlim(0,5000) + 
   labs(title="Shares Boxplot",x="Amount of Shares")
 ```
-
+```{r ecdf}
+#We can again inspect the shares variable by using an empirical cumulative distribution function. The graph displays the amount of shares with the proportion of points at or below the value. As the line approaches 1, more of th edata is represented by that value of shares and lesser to give us an idea of the where the majority of shares per article lies at and below.
+g2 + stat_ecdf(geom = "step") +
+labs(title="Shares ECDF", y="ECDF",x="Amount of Shares")
+```
 
 ##  4. Modeling
 

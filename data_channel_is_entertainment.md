@@ -12,7 +12,11 @@ due 2023-07-09
     id="toc-3-basic-summary-statistics">3. Basic Summary Statistics</a>
     - <a href="#summary-statistics" id="toc-summary-statistics">Summary
       Statistics</a>
-    - <a href="#plots" id="toc-plots">Plots</a>
+    - <a href="#average-number-of-shares-by-day-of-week"
+      id="toc-average-number-of-shares-by-day-of-week">Average Number of
+      Shares by Day of Week</a>
+    - <a href="#additional-plots" id="toc-additional-plots">Additional
+      Plots</a>
   - <a href="#4-modeling" id="toc-4-modeling">4. Modeling</a>
     - <a href="#linear-regression-models"
       id="toc-linear-regression-models">Linear Regression Models</a>
@@ -20,8 +24,6 @@ due 2023-07-09
       Forest Model</a>
     - <a href="#boosted-tree-model" id="toc-boosted-tree-model">Boosted Tree
       Model</a>
-  - <a href="#model-comparisons" id="toc-model-comparisons">Model
-    Comparisons</a>
 
 ``` r
 # Create chosenChannel variable to used for title and other inline code
@@ -83,6 +85,8 @@ raw_data<-read.csv("~/ST558/Project2/OnlineNewsPopularity.csv")
 # Remove variables we won't use
 newsData<-raw_data %>% dplyr::select(-c(url,timedelta))
 
+############## the following lines of code are for test purposes before full automation
+  
 #Filter data from a single channel ( as a test before automation) using the parameter "params$channel"
 
 #store business channel the global channel parameter 
@@ -91,12 +95,14 @@ newsData<-raw_data %>% dplyr::select(-c(url,timedelta))
 #Reduce the number of observations to 1000 - trial run
 newsData<-newsData[3000:4000,]
 
+#################
+
 # convert the parameter into a name and then select the rows  where the channel is 1
 channelData<-newsData %>% filter(eval(as.name(params$channel))==1)
 #shares imported as integer.  Convert to double for purposes of analysis.. 
 chanellData<-channelData%>%mutate(shares=as.numeric(shares))
 
-rm(newsdata)
+rm(newsData)
 ```
 
 ## 3. Basic Summary Statistics
@@ -246,6 +252,8 @@ top_3<-share_cor%>%
 
 ![](images/entert/top3%20correlation%20plot-1.png)<!-- -->
 
+Next we explore the behavior of shares as a function of day of the week.
+
 ``` r
 #weekday-shares relationship
 
@@ -262,40 +270,61 @@ dayData<-channelData%>%
     dplyr::select(-starts_with("weekday_is"))%>%
   group_by(day_of_week)%>%
     summarize(avg_Shares=mean(shares, na.rm=TRUE), num_articles=n())
+```
 
-# Average Number of Shares by Day of Week 
+### Average Number of Shares by Day of Week
 
-# The first bar plot below shows the average number of shares by day of the week.  If weekends show higher shares, it may mean that people have more time in their hands to read the articles.  If weekdays are more popular for sharing, it may have to do with the subject matter of the articles or the number of published articles. 
-#The second bar plot below shows the number of articles published by day of week.  By comparing it to the first plot, you may glean whether a higher average number shares in a week day can be explained by the availability of more  articles on that day. 
+The first bar plot below shows the average number of shares by day of
+the week. If weekends show higher shares, it may mean that people have
+more time in their hands to read the articles. If weekdays are more
+popular for sharing, it may have to do with the subject matter of the
+articles or the number of published articles.
 
+The second bar plot below shows the number of articles published by day
+of week. By comparing it to the first plot, you may glean whether a
+higher average number shares in a week day can be explained by the
+availability of more articles on that day.
 
+``` r
 g1<-ggplot(dayData, aes(x = day_of_week)) 
  
 par(mfrow=c(1,2))
 g1+geom_bar(stat="identity",color = "lightgreen", aes(y = avg_Shares, fill = day_of_week) )+  scale_fill_grey()+ guides(fill="none")+labs(title="Average Shares by Day of Week", x="Day of Week", y="Avg. Shares")
 ```
 
-![](images/entert/weekday%20summary-1.png)<!-- -->
+![](images/entert/days%20of%20week-1.png)<!-- -->
 
 ``` r
 g1+geom_bar(stat="identity",color = "lightgreen", aes(y = num_articles, fill = day_of_week) )+  scale_fill_grey()+ guides(fill="none")+labs(title="Number of Articles by Day of Week", x="Day of Week", y="Articles")
 ```
 
-![](images/entert/weekday%20summary-2.png)<!-- -->
+![](images/entert/days%20of%20week-2.png)<!-- -->
 
-### Plots
+### Additional Plots
 
 ``` r
-#We can inspect the trend of the amount of shares as a function of the number of word in the content itself. If the points show an upward trend,then longer articles are shared more often. On the other hand, if there is a negative trend, then shorter articles are shared more.
+#We can inspect the trend of the amount of shares as a function of the number of words in the content itself. If the points show an upward trend,then longer articles are shared more often. On the other hand, if there is a negative trend, then shorter articles are shared more.
 g <- ggplot(channelData, aes(x=n_tokens_content,y=shares))
 g + geom_point() + geom_smooth() +
   labs(title="Word Count vs Shares",x="Number of Words in Content", y="Amount of Shares")
 ```
 
-![](images/entert/plots%20and%20summaries-1.png)<!-- -->
+![](images/entert/scatter%20plots-1.png)<!-- -->
 
 ``` r
-#In order to get an idea of the number of shares we are dealing with, a 5 number summary can be created to get an idea of the distribution, along with standard deviation to get an idea of the spread
+#We are also interested in how the subjectivity of an article's title affects the amount of shares of said article. If the points display an upward trend, then more subjective titles have more shares. Likewise, if there is a downward trend, then less subjective titles recieve more shares
+g3 <- ggplot(channelData, aes(x=title_subjectivity,y=shares)) 
+g3 + geom_point() + geom_smooth() +
+  labs(title="Titile Subjectivty vs Shares",x="Article Title Subjectivity", y="Amount of Shares")
+```
+
+![](images/entert/scatter%20plots-2.png)<!-- -->
+
+In order to explore the number of shares we are dealing with, a 5 number
+summary shows the distribution, along with standard deviation to get an
+idea of the spread
+
+``` r
 summarise(channelData,min=min(shares),
           Q1=quantile(shares,0.25),
           med=quantile(shares,0.5),
@@ -310,13 +339,27 @@ summarise(channelData,min=min(shares),
     ## 1 379 957.5 1500 3029.127 4864.191 2500 35100
 
 ``` r
-#To visualize this, a box plot can be created to visualize the spread and the 5 number summary 
+#To visualize this, a box plot can be created to visualize the spread and the 5 number summary
 g2 <- ggplot(channelData,aes(x=shares))
 g2 + geom_boxplot() + xlim(0,5000) + 
   labs(title="Shares Boxplot",x="Amount of Shares")
 ```
 
-![](images/entert/unnamed-chunk-1-1.png)<!-- -->
+![](images/entert/number%20summary%20and%20boxplot-1.png)<!-- -->
+
+We can again inspect the shares variable by using an empirical
+cumulative distribution function. The graph displays the amount of
+shares with the proportion of points at or below the value. As the line
+approaches 1, more of th edata is represented by that value of shares
+and lesser to give us an idea of the where the majority of shares per
+article lies at and below.
+
+``` r
+g2 + stat_ecdf(geom = "step") +
+labs(title="Shares ECDF", y="ECDF",x="Amount of Shares")
+```
+
+![](images/entert/ecdf-1.png)<!-- -->
 
 ## 4. Modeling
 
@@ -327,6 +370,7 @@ for training.
 #use set.seed for reproducibility
 set.seed(101)
 
+#We need to split the data into a training (70% of the data) and test set (30% of the data)
 trainIndex <-caret::createDataPartition(channelData$shares, p = 0.7, list = FALSE)
 
 training <-channelData[trainIndex,]
@@ -376,6 +420,7 @@ scaling.
 
 ``` r
 set.seed(102)
+#Include all variables with variance and fit a linear regression
  lm1Fit <- train(shares~., data=filteredChannelData,
                  method="lm",
                  preProcess=c("center","scale"),
@@ -385,18 +430,19 @@ set.seed(102)
 
     ## Linear Regression 
     ## 
-    ## 134 samples
-    ##  50 predictor
+    ## 7057 samples
+    ##   51 predictor
     ## 
-    ## Pre-processing: centered (50), scaled (50) 
+    ## Pre-processing: centered (51), scaled (51) 
     ## Resampling: Cross-Validated (10 fold, repeated 5 times) 
-    ## Summary of sample sizes: 121, 119, 120, 122, 121, 119, ... 
+    ## Summary of sample sizes: 6353, 6351, 6351, 6352, 6350, 6350, ... 
     ## Resampling results:
     ## 
-    ##   RMSE      Rsquared  MAE     
-    ##   5938.261  0.10257   4072.537
+    ##   RMSE      Rsquared    MAE     
+    ##   21332.56  0.01716091  3460.587
     ## 
-    ## Tuning parameter 'intercept' was held constant at a value of TRUE
+    ## Tuning parameter 'intercept' was held constant at a value
+    ##  of TRUE
 
 ``` r
  predictionlm1 <- predict(lm1Fit,newdata = testing)
@@ -464,19 +510,29 @@ and results are averaged. The difference is that only a random subset of
 the predictors for each sample/fit.
 
 ``` r
- #cl <- makePSOCKcluster(5)  #start parallel computing with 5 cores
- #registerDoParallel(cl)
-# 
-# set.seed(102)
-# randomforestFit <- train(shares~.,data=filteredChannelData,
-#                method="rf",
-#                trControl=controlObject,
-#                tuneGrid=data.frame(mtry=1:10))
+start<-Sys.time() #measure start of run time 
+
+#cores<-detectCores()-1 #check how may cores the cpu has
+
+#cl <- makePSOCKcluster(cores)  #start parallel computing with 5 cores
+#registerDoParallel(cl)
+
+rfform <- formu  #use the shortened number of variables based on high correlation with response
+set.seed(102)
+rfFit <- train(form=rfform,
+                data=filteredChannelData,
+                method="rf",
+                trControl=controlObject,
+                tuneGrid=data.frame(mtry=1:4))
 # rfFit$results
 # rfFit$bestTune
-# predictionrf <- predict(rfFit,newdata = testing)
-# RF_RMSE<-data.frame(model="Random Forest",RMSE=postResample(predictionrf, obs = filteredChannelData$shares))
+ predictionrf <- predict(rfFit,newdata = testing)
+ RF_RMSE<-data.frame(model="Random Forest",RMSE=postResample(predictionrf, obs = filteredChannelData$shares)[[1]])
+
+ Sys.time()-start #print run time
 ```
+
+    ## Time difference of 15.02635 secs
 
 ### Boosted Tree Model
 
@@ -493,6 +549,7 @@ The tuning parameters are the typically the maximum tree depth, number
 of trees, and a shrinkage parameter (learning rate).
 
 ``` r
+start<-Sys.time() #measure start of run time 
  BTformula<-formu  #use same formula as for the second linear regression model 
  
   set.seed(122)
@@ -514,13 +571,17 @@ of trees, and a shrinkage parameter (learning rate).
     #trace=0
       )
  
- #stopCluster(cl) #end parallel computing 
+# stopCluster(cl) #end parallel computing 
  
   predictionBT <- predict(BTfit,newdata = testing)
   BT_RMSE<-data.frame(model="Boosted Tree", RMSE=postResample(predictionBT, obs = filteredChannelData$shares)["RMSE"][[1]])
+
+Sys.time()-start #print run time
 ```
 
-## Model Comparisons
+    ## Time difference of 4.92944 secs
+
+5.  Predictive Models Comparison
 
 We calculated the root mean square error (RMSE) for each model using the
 testing data, shown in the table below. The winning model will be the
@@ -532,7 +593,7 @@ perfMetric<-data.frame()
 #Add the RMSEs as rows 
 perfMetric<-rbind(lm1_RMSE,
             lm2_RMSE,
-            #RF_RMSE,
+            RF_RMSE,
             BT_RMSE)
 
 kable(perfMetric)
@@ -540,12 +601,13 @@ kable(perfMetric)
 
 | model               |     RMSE |
 |:--------------------|---------:|
-| Linear Regression 1 | 2844.560 |
-| Linear Regression 2 | 3951.164 |
-| Boosted Tree        | 4934.057 |
+| Linear Regression 1 | 6054.552 |
+| Linear Regression 2 | 6067.938 |
+| Random Forest       | 4966.596 |
+| Boosted Tree        | 4875.036 |
 
 ``` r
 bestModel<-perfMetric[which.min(perfMetric$RMSE),][1]
 ```
 
-The winning model is: **Linear Regression 1**.
+The winning model is: **Boosted Tree**.
